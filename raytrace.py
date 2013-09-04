@@ -15,6 +15,9 @@ class Tuple3(tuple):
     def __mul__(self, scalar):
         return Tuple3(*(c*scalar for c in self))
 
+    def __div__(self, scalar):
+        return Tuple3(*(c/scalar for c in self))
+
     def __len__(self):
         return math.sqrt(sum(c*c for c in self))
 
@@ -69,6 +72,8 @@ class Camera(object):
 
 
 class Scene(object):
+    AMBIENT = Color(.1, .1, .1)
+
     def __init__(self):
         self.renderables = []
         self.lights = []
@@ -109,21 +114,21 @@ def intersect_sphere(sphere, ray, result=True):
     if discr < .0:
         return None
 
-    if result:
-        sqrt_discr = math.sqrt(discr)
-        t = -b - sqrt_discr
-        if t < .0:
-            t = -b + sqrt_discr
+    if not result:
+        return True
 
+    sqrt_discr = math.sqrt(discr)
+    t = -b - sqrt_discr
+    if t < .0:
+        t = -b + sqrt_discr
     return t
 
 
 def lambert_shade(normal, color, direction):
-    ambient = Color(.1, .1, .1)
     i = dot(direction, normal)
     if i < .0:
-        return ambient
-    return ambient + (color * i)
+        return Scene.AMBIENT
+    return Scene.AMBIENT + (color * i)
 
 def normal_shade(normal, color, _):
     return (Vector3(1.0, 1.0, 1.0) - normal).normalize()
@@ -134,8 +139,9 @@ def raytrace(viewport, scene, camera):
 
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
-            ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             intersections = []
+            colors = []
+            ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             for sphere in scene.renderables:
                 intersection = intersect_sphere(sphere, ray)
                 if intersection is not None:
@@ -144,16 +150,30 @@ def raytrace(viewport, scene, camera):
                 intersections.sort(key=lambda i: i[0])
                 t, sphere = intersections[0]
                 point = ray.point(t)
-                normal = (point - sphere.origin).normalize()
-                direction = (scene.lights[0].origin - point).normalize()
-                viewport.set_pixel(x, y, shader(normal, sphere.color, direction))
+
+                for light in scene.lights:
+                    occulded = False
+                    for s in scene.renderables:
+                        if intersect_sphere(s, Ray(ray.point(t-1), (light.origin - point).normalize()), False):
+                            occulded = True
+                            break
+                    if not occulded:
+                        normal = (point - sphere.origin).normalize()
+                        direction = (light.origin - point).normalize()
+                        colors.append(shader(normal, sphere.color, direction))
+                    else:
+                        colors.append(scene.AMBIENT)
+            if colors:
+                color = reduce(lambda a, b: a+b, colors) / len(colors)
+                viewport.set_pixel(x, y, color)
 
 
 def main():
     scene = Scene()
-    scene.lights.append(Light(Point3(320.0, 120.0, 50.0)))
+    scene.lights.append(Light(Point3(20.0, 120.0, 50.0)))
+    scene.lights.append(Light(Point3(700.0, .0, 50.0)))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
-    scene.renderables.append(Sphere(Point3(120.0, 400.0, 300.0), 100.0, GREEN))
+    scene.renderables.append(Sphere(Point3(180.0, 400.0, 320.0), 100.0, GREEN))
     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, BLUE))
     camera = Camera(Point3(320.0, 240.0, .0), Vector3(.0, .0, 1.0))
 
