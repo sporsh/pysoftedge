@@ -53,9 +53,24 @@ class Ray(object):
 
 
 class Light(object):
-    def __init__(self, origin, intensity=1):
+    def __init__(self, origin, intensity, occluders):
         self.origin = origin
         self.intensity = intensity
+        self.occluders = occluders
+
+    def get_illumination(self, region):
+        occluded = False
+        for occluder in self.occluders:
+            direction = (self.origin - region.get_origin()).normalize()
+            ray = Ray(region.get_origin(), direction)
+            if occluder.intersect(ray, result=False):
+                occluded = True
+                break
+        if occluded:
+            return .0
+
+        direction = (self.origin - region.get_origin()).normalize()
+        return max(0, dot(direction, region.get_normal()) * self.intensity)
 
 
 class Renderable(object):
@@ -99,15 +114,15 @@ class Sphere(Renderable):
 
 class RayIntersection(object):
     def __init__(self, ray, t, renderable):
-        self._point = None
+        self._origin = None
         self.ray = ray
         self.t = t
         self.renderable = renderable
 
-    def get_point(self):
-        if self._point is None:
-            self._point = self.ray.point(self.t)
-        return self._point
+    def get_origin(self, offset=.1):
+        if self._origin is None:
+            self._origin = self.ray.point(self.t - offset)
+        return self._origin
 
     def get_color(self):
         return self.renderable.color
@@ -121,7 +136,7 @@ class SphereRayIntersection(RayIntersection):
 
     def get_normal(self):
         if self._normal is None:
-            self._normal = (self.get_point() - self.sphere.origin).normalize()
+            self._normal = (self.get_origin() - self.sphere.origin).normalize()
         return self._normal
 
 
@@ -171,27 +186,17 @@ def raytrace(viewport, scene, camera):
             if intersections:
                 intersections.sort(key=lambda i: i.t)
                 i = intersections[0]
-                point = i.get_point()
 
                 for light in scene.lights:
-                    occluded = False
-                    for s in scene.renderables:
-                        if s.intersect(Ray(ray.point(i.t-.1), (light.origin - point).normalize()), False):
-                            occluded = True
-                            break
-                    if not occluded:
-                        normal = i.get_normal()
-                        direction = (light.origin - point).normalize()
-                        lambert = max(0, dot(direction, normal) * light.intensity)
-                        illumination += lambert
+                    illumination += light.get_illumination(i)
 
                 viewport.set_pixel(x, y, i.get_color() * illumination)
 
 
 def main():
     scene = Scene()
-    scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8))
-    scene.lights.append(Light(Point3(700.0, .0, .0), .4))
+    scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8, occluders=scene.renderables))
+    scene.lights.append(Light(Point3(700.0, .0, .0), .4, occluders=scene.renderables))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
     scene.renderables.append(Sphere(Point3(450.0, 200.0, 220.0), 40.0, RED))
     scene.renderables.append(Sphere(Point3(230.0, 350.0, 320.0), 100.0, GREEN))
