@@ -58,19 +58,19 @@ class Light(object):
         self.intensity = intensity
         self.occluders = occluders
 
-    def get_illumination(self, region):
+    def get_illumination(self, surface):
         occluded = False
         for occluder in self.occluders:
-            direction = (self.origin - region.get_origin()).normalize()
-            ray = Ray(region.get_origin(), direction)
+            direction = (self.origin - surface.origin).normalize()
+            ray = Ray(surface.origin, direction)
             if occluder.intersect(ray, result=False):
                 occluded = True
                 break
         if occluded:
             return .0
 
-        direction = (self.origin - region.get_origin()).normalize()
-        return max(0, dot(direction, region.get_normal()) * self.intensity)
+        direction = (self.origin - surface.origin).normalize()
+        return max(0, dot(direction, surface.normal) * self.intensity)
 
 
 class Renderable(object):
@@ -112,6 +112,13 @@ class Sphere(Renderable):
         return SphereRayIntersection(ray, t, self)
 
 
+class Surface(object):
+    def __init__(self, origin, normal, color):
+        self.origin = origin
+        self.normal = normal
+        self.color = color
+
+
 class RayIntersection(object):
     def __init__(self, ray, t, renderable):
         self._origin = None
@@ -124,8 +131,13 @@ class RayIntersection(object):
             self._origin = self.ray.point(self.t - offset)
         return self._origin
 
-    def get_color(self, illumination):
-        return self.renderable.color * illumination
+    def get_normal(self):
+        raise NotImplementedError()
+
+    def get_surface(self):
+        return Surface(self.get_origin(),
+                       self.get_normal(),
+                       self.renderable.color)
 
 
 class SphereRayIntersection(RayIntersection):
@@ -176,18 +188,18 @@ class Viewport(object):
 def raytrace(viewport, scene, camera):
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
-            intersections = []
+            trace = []
             illumination = scene.ambient
             ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             for renderable in scene.renderables:
                 intersection = renderable.intersect(ray)
                 if intersection is not None:
-                    intersections.append(intersection)
-            if intersections:
-                intersections.sort(key=lambda i: i.t)
-                i = intersections[0]
-                illumination += sum(light.get_illumination(i) for light in scene.lights)
-                viewport.set_pixel(x, y, i.get_color(illumination))
+                    trace.append(intersection)
+            if trace:
+                trace.sort(key=lambda i: i.t)
+                surface = trace.pop(0).get_surface()
+                illumination += sum(light.get_illumination(surface) for light in scene.lights)
+                viewport.set_pixel(x, y, surface.color * illumination)
 
 
 def main():
