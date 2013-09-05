@@ -124,8 +124,8 @@ class RayIntersection(object):
             self._origin = self.ray.point(self.t - offset)
         return self._origin
 
-    def get_color(self):
-        return self.renderable.color
+    def get_color(self, illumination):
+        return self.renderable.color * illumination
 
 
 class SphereRayIntersection(RayIntersection):
@@ -186,11 +186,8 @@ def raytrace(viewport, scene, camera):
             if intersections:
                 intersections.sort(key=lambda i: i.t)
                 i = intersections[0]
-
-                for light in scene.lights:
-                    illumination += light.get_illumination(i)
-
-                viewport.set_pixel(x, y, i.get_color() * illumination)
+                illumination += sum(light.get_illumination(i) for light in scene.lights)
+                viewport.set_pixel(x, y, i.get_color(illumination))
 
 
 def main():
