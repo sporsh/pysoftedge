@@ -53,24 +53,23 @@ class Ray(object):
 
 
 class Light(object):
-    def __init__(self, origin, intensity, occluders):
+    def __init__(self, origin, intensity):
         self.origin = origin
         self.intensity = intensity
-        self.occluders = occluders
 
-    def get_illumination(self, surface):
-        occluded = False
-        for occluder in self.occluders:
-            direction = (self.origin - surface.origin).normalize()
-            ray = Ray(surface.origin, direction)
+    def is_occluded(self, origin, occluders):
+        for occluder in occluders:
+            direction = (self.origin - origin).normalize()
+            ray = Ray(origin, direction)
             if occluder.intersect(ray, result=False):
-                occluded = True
-                break
-        if occluded:
-            return .0
+                return True
+        return False
 
-        direction = (self.origin - surface.origin).normalize()
-        return max(0, dot(direction, surface.normal) * self.intensity)
+    def get_illumination(self, origin):
+        """Get illumination details for a specific spatial point
+        """
+        direction = (self.origin - origin).normalize()
+        return direction, self.intensity
 
 
 class Renderable(object):
@@ -117,6 +116,20 @@ class Surface(object):
         self.origin = origin
         self.normal = normal
         self.color = color
+
+    def illuminate(self, scene, mode='lambert'):
+        if mode == 'lambert':
+            lights = (l for l in scene.lights if not l.is_occluded(self.origin, scene.renderables))
+            return self.color * (scene.ambient + self.shade_lambert(lights))
+        elif mode == 'flat':
+            return self.color
+
+    def shade_lambert(self, lights):
+        illumination = .0
+        for light in lights:
+            direction, intensity = light.get_illumination(self.origin)
+            illumination += max(0, dot(direction, self.normal) * intensity)
+        return illumination
 
 
 class RayIntersection(object):
@@ -189,7 +202,6 @@ def raytrace(viewport, scene, camera):
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
             trace = []
-            illumination = scene.ambient
             ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             for renderable in scene.renderables:
                 intersection = renderable.intersect(ray)
@@ -198,14 +210,13 @@ def raytrace(viewport, scene, camera):
             if trace:
                 trace.sort(key=lambda i: i.t)
                 surface = trace.pop(0).get_surface()
-                illumination += sum(light.get_illumination(surface) for light in scene.lights)
-                viewport.set_pixel(x, y, surface.color * illumination)
+                viewport.set_pixel(x, y, surface.illuminate(scene))
 
 
 def main():
     scene = Scene()
-    scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8, occluders=scene.renderables))
-    scene.lights.append(Light(Point3(700.0, .0, .0), .4, occluders=scene.renderables))
+    scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8))
+    scene.lights.append(Light(Point3(700.0, .0, .0), .4))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
     scene.renderables.append(Sphere(Point3(450.0, 200.0, 220.0), 40.0, RED))
     scene.renderables.append(Sphere(Point3(230.0, 350.0, 320.0), 100.0, GREEN))
