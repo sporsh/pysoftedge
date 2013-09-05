@@ -64,6 +64,30 @@ class Sphere(object):
         self.radius = radius
         self.color = color
 
+    def intersect(self, ray, result=True):
+        m = ray.origin - self.origin
+        c = dot(m, m) - self.radius**2.0
+
+        if not result and c <= .0:
+            return True
+
+        b = dot(m, ray.direction)
+        if b > .0:
+            return None
+
+        discr = b * b - c
+        if discr < .0:
+            return None
+
+        if not result:
+            return True
+
+        sqrt_discr = math.sqrt(discr)
+        t = -b - sqrt_discr
+        if t < .0:
+            t = -b + sqrt_discr
+        return t
+
 
 class Camera(object):
     def __init__(self, origin, direction):
@@ -98,31 +122,6 @@ class Viewport(object):
             self.buffer.tofile(f)
 
 
-def intersect_sphere(sphere, ray, result=True):
-    m = ray.origin - sphere.origin
-    c = dot(m, m) - sphere.radius**2.0
-
-    if not result and c <= .0:
-        return True
-
-    b = dot(m, ray.direction)
-    if b > .0:
-        return None
-
-    discr = b * b - c
-    if discr < .0:
-        return None
-
-    if not result:
-        return True
-
-    sqrt_discr = math.sqrt(discr)
-    t = -b - sqrt_discr
-    if t < .0:
-        t = -b + sqrt_discr
-    return t
-
-
 def raytrace(viewport, scene, camera):
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
@@ -130,24 +129,24 @@ def raytrace(viewport, scene, camera):
             color = None
             illumination = scene.ambient
             ray = Ray(Point3(float(x), float(y), .0), camera.direction)
-            for sphere in scene.renderables:
-                intersection = intersect_sphere(sphere, ray)
+            for renderable in scene.renderables:
+                intersection = renderable.intersect(ray)
                 if intersection is not None:
-                    intersections.append((intersection, sphere))
+                    intersections.append((intersection, renderable))
             if intersections:
                 intersections.sort(key=lambda i: i[0])
-                t, sphere = intersections[0]
+                t, renderable = intersections[0]
                 point = ray.point(t)
-                color = sphere.color
+                color = renderable.color
 
                 for light in scene.lights:
-                    occulded = False
+                    occluded = False
                     for s in scene.renderables:
-                        if intersect_sphere(s, Ray(ray.point(t-.1), (light.origin - point).normalize()), False):
-                            occulded = True
+                        if s.intersect(Ray(ray.point(t-.1), (light.origin - point).normalize()), False):
+                            occluded = True
                             break
-                    if not occulded:
-                        normal = (point - sphere.origin).normalize()
+                    if not occluded:
+                        normal = (point - renderable.origin).normalize()
                         direction = (light.origin - point).normalize()
                         lambert = max(0, dot(direction, normal) * light.intensity)
                         illumination += lambert
