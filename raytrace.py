@@ -59,7 +59,7 @@ class Light(object):
 
 
 class Sphere(object):
-    def __init__(self, origin, radius, color=RED):
+    def __init__(self, origin, radius, color):
         self.origin = origin
         self.radius = radius
         self.color = color
@@ -157,10 +157,11 @@ def raytrace(viewport, scene, camera):
 
 def main():
     scene = Scene()
-    scene.lights.append(Light(Point3(20.0, 120.0, 50.0), .8))
-    scene.lights.append(Light(Point3(700.0, .0, 50.0), .4))
+    scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8))
+    scene.lights.append(Light(Point3(700.0, .0, .0), .4))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
-    scene.renderables.append(Sphere(Point3(180.0, 400.0, 320.0), 100.0, GREEN))
+    scene.renderables.append(Sphere(Point3(450.0, 200.0, 220.0), 40.0, RED))
+    scene.renderables.append(Sphere(Point3(230.0, 350.0, 320.0), 100.0, GREEN))
     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, BLUE))
     camera = Camera(Point3(320.0, 240.0, .0), Vector3(.0, .0, 1.0))
 
