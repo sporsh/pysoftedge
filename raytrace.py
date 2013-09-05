@@ -178,9 +178,7 @@ class Scene(object):
         self.lights = []
 
 
-class Viewport(object):
-    MAX_COLOR = 255
-
+class Canvas(object):
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -193,24 +191,42 @@ class Viewport(object):
         self.buffer[i+2] = max(0, min(255, int(color[2] * 255.0)))
 
     def save(self, filename):
-        with open('output.ppm', 'wb') as f:
-            f.write('P6 %d %d %d\n' % (self.width, self.height, self.MAX_COLOR))
+        filename += '.ppm' if not 'filename.'.endswith('.ppm') else ''
+        with open(filename, 'wb') as f:
+            f.write('P6 %d %d 255\n' % (self.width, self.height))
             self.buffer.tofile(f)
 
 
-def raytrace(viewport, scene, camera):
-    for y in xrange(viewport.height):
-        for x in xrange(viewport.width):
-            trace = []
-            ray = Ray(Point3(float(x), float(y), .0), camera.direction)
-            for renderable in scene.renderables:
-                intersection = renderable.intersect(ray)
-                if intersection is not None:
-                    trace.append(intersection)
-            if trace:
-                trace.sort(key=lambda i: i.t)
-                surface = trace.pop(0).get_surface()
-                viewport.set_pixel(x, y, surface.illuminate(scene))
+class RaytraceRenderer(object):
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.canvas = Canvas(width, height)
+
+    def render(self, scene, camera):
+        tracer = RayTracer()
+        for y in xrange(self.height):
+            for x in xrange(self.width):
+                ray = Ray(Point3(float(x), float(y), .0), camera.direction)
+                color = tracer.trace(ray, scene)
+                if color:
+                    self.canvas.set_pixel(x, y, color)
+
+        filename = 'rtr_scene_camera'
+        self.canvas.save(filename)
+
+
+class RayTracer(object):
+    def trace(self, ray, scene):
+        trace = []
+        for renderable in scene.renderables:
+            intersection = renderable.intersect(ray)
+            if intersection is not None:
+                trace.append(intersection)
+        if trace:
+            trace.sort(key=lambda i: i.t)
+            surface = trace.pop(0).get_surface()
+            return surface.illuminate(scene)
 
 
 def main():
@@ -221,13 +237,11 @@ def main():
     scene.renderables.append(Sphere(Point3(450.0, 200.0, 220.0), 40.0, RED))
     scene.renderables.append(Sphere(Point3(230.0, 350.0, 320.0), 100.0, GREEN))
     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, BLUE))
+
     camera = Camera(Point3(320.0, 240.0, .0), Vector3(.0, .0, 1.0))
 
-    viewport = Viewport(640, 480)
-
-    raytrace(viewport, scene, camera)
-
-    viewport.save('output.ppm')
+    renderer = RaytraceRenderer(640, 480)
+    renderer.render(scene, camera)
 
 
 if __name__ == '__main__':
