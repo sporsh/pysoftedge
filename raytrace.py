@@ -53,10 +53,9 @@ class Ray(object):
 
 
 class Light(object):
-    def __init__(self, origin, intensity=1, color=WHITE):
+    def __init__(self, origin, intensity=1):
         self.origin = origin
         self.intensity = intensity
-        self.color = color
 
 
 class Sphere(object):
@@ -73,9 +72,8 @@ class Camera(object):
 
 
 class Scene(object):
-    AMBIENT = Color(.1, .1, .1)
-
     def __init__(self):
+        self.ambient = .05
         self.renderables = []
         self.lights = []
 
@@ -125,24 +123,12 @@ def intersect_sphere(sphere, ray, result=True):
     return t
 
 
-def lambert_shade(normal, color, direction):
-    i = dot(direction, normal)
-    if i < .0:
-        return Scene.AMBIENT
-    return Scene.AMBIENT + (color * i)
-
-def normal_shade(normal, color, _):
-    return (Vector3(1.0, 1.0, 1.0) - normal).normalize()
-
-
 def raytrace(viewport, scene, camera):
-    shader = lambert_shade
-
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
             intersections = []
             color = None
-            illumination = .0
+            illumination = scene.ambient
             ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             for sphere in scene.renderables:
                 intersection = intersect_sphere(sphere, ray)
@@ -157,7 +143,7 @@ def raytrace(viewport, scene, camera):
                 for light in scene.lights:
                     occulded = False
                     for s in scene.renderables:
-                        if intersect_sphere(s, Ray(ray.point(t-1), (light.origin - point).normalize()), False):
+                        if intersect_sphere(s, Ray(ray.point(t-.1), (light.origin - point).normalize()), False):
                             occulded = True
                             break
                     if not occulded:
@@ -171,8 +157,8 @@ def raytrace(viewport, scene, camera):
 
 def main():
     scene = Scene()
-    scene.lights.append(Light(Point3(20.0, 120.0, 50.0)))
-    scene.lights.append(Light(Point3(700.0, .0, 50.0), .5))
+    scene.lights.append(Light(Point3(20.0, 120.0, 50.0), .8))
+    scene.lights.append(Light(Point3(700.0, .0, 50.0), .4))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
     scene.renderables.append(Sphere(Point3(180.0, 400.0, 320.0), 100.0, GREEN))
     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, BLUE))
