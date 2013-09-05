@@ -58,13 +58,21 @@ class Light(object):
         self.intensity = intensity
 
 
-class Sphere(object):
-    def __init__(self, origin, radius, color):
+class Renderable(object):
+    def __init__(self, origin, color):
         self.origin = origin
-        self.radius = radius
         self.color = color
 
-    def intersect(self, ray, result=True):
+    def intersect(self, ray, result=True, backface=True):
+        raise NotImplementedError()
+
+
+class Sphere(Renderable):
+    def __init__(self, origin, radius, color):
+        Renderable.__init__(self, origin, color)
+        self.radius = radius
+
+    def intersect(self, ray, result=True, backface=True):
         m = ray.origin - self.origin
         c = dot(m, m) - self.radius**2.0
 
