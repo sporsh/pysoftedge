@@ -18,11 +18,11 @@ class Tuple3(tuple):
     def __div__(self, scalar):
         return Tuple3(*(c/scalar for c in self))
 
-    def __len__(self):
+    def length(self):
         return math.sqrt(sum(c*c for c in self))
 
     def resize(self, scalar):
-        return self * (scalar / len(self))
+        return self * (scalar / self.length())
 
     def normalize(self):
         return self.resize(1.0)
@@ -53,9 +53,10 @@ class Ray(object):
 
 
 class Light(object):
-    def __init__(self, origin, color=WHITE):
+    def __init__(self, origin, intensity=1, color=WHITE):
         self.origin = origin
-        self.clolr = color
+        self.intensity = intensity
+        self.color = color
 
 
 class Sphere(object):
@@ -140,7 +141,8 @@ def raytrace(viewport, scene, camera):
     for y in xrange(viewport.height):
         for x in xrange(viewport.width):
             intersections = []
-            colors = []
+            color = None
+            illumination = .0
             ray = Ray(Point3(float(x), float(y), .0), camera.direction)
             for sphere in scene.renderables:
                 intersection = intersect_sphere(sphere, ray)
@@ -150,6 +152,7 @@ def raytrace(viewport, scene, camera):
                 intersections.sort(key=lambda i: i[0])
                 t, sphere = intersections[0]
                 point = ray.point(t)
+                color = sphere.color
 
                 for light in scene.lights:
                     occulded = False
@@ -160,18 +163,16 @@ def raytrace(viewport, scene, camera):
                     if not occulded:
                         normal = (point - sphere.origin).normalize()
                         direction = (light.origin - point).normalize()
-                        colors.append(shader(normal, sphere.color, direction))
-                    else:
-                        colors.append(scene.AMBIENT)
-            if colors:
-                color = reduce(lambda a, b: a+b, colors) / len(colors)
-                viewport.set_pixel(x, y, color)
+                        lambert = max(0, dot(direction, normal) * light.intensity)
+                        illumination += lambert
+            if color and illumination:
+                viewport.set_pixel(x, y, color * illumination)
 
 
 def main():
     scene = Scene()
     scene.lights.append(Light(Point3(20.0, 120.0, 50.0)))
-    scene.lights.append(Light(Point3(700.0, .0, 50.0)))
+    scene.lights.append(Light(Point3(700.0, .0, 50.0), .5))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, YELLOW))
     scene.renderables.append(Sphere(Point3(180.0, 400.0, 320.0), 100.0, GREEN))
     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, BLUE))
