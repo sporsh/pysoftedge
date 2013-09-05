@@ -86,7 +86,32 @@ class Sphere(object):
         t = -b - sqrt_discr
         if t < .0:
             t = -b + sqrt_discr
-        return t
+        return SphereRayIntersection(ray, t, self)
+
+
+class RayIntersection(object):
+    def __init__(self, ray, t, renderable):
+        self._point = None
+        self.ray = ray
+        self.t = t
+        self.renderable = renderable
+
+    def get_point(self):
+        if self._point is None:
+            self._point = self.ray.point(self.t)
+        return self._point
+
+
+class SphereRayIntersection(RayIntersection):
+    def __init__(self, ray, t, sphere):
+        self._normal = None
+        self.sphere = sphere
+        RayIntersection.__init__(self, ray, t, sphere)
+
+    def get_normal(self):
+        if self._normal is None:
+            self._normal = (self.get_point() - self.sphere.origin).normalize()
+        return self._normal
 
 
 class Camera(object):
@@ -132,21 +157,21 @@ def raytrace(viewport, scene, camera):
             for renderable in scene.renderables:
                 intersection = renderable.intersect(ray)
                 if intersection is not None:
-                    intersections.append((intersection, renderable))
+                    intersections.append(intersection)
             if intersections:
-                intersections.sort(key=lambda i: i[0])
-                t, renderable = intersections[0]
-                point = ray.point(t)
-                color = renderable.color
+                intersections.sort(key=lambda i: i.t)
+                i = intersections[0]
+                point = i.get_point()
+                color = i.renderable.color
 
                 for light in scene.lights:
                     occluded = False
                     for s in scene.renderables:
-                        if s.intersect(Ray(ray.point(t-.1), (light.origin - point).normalize()), False):
+                        if s.intersect(Ray(ray.point(i.t-.1), (light.origin - point).normalize()), False):
                             occluded = True
                             break
                     if not occluded:
-                        normal = (point - renderable.origin).normalize()
+                        normal = i.get_normal()
                         direction = (light.origin - point).normalize()
                         lambert = max(0, dot(direction, normal) * light.intensity)
                         illumination += lambert
