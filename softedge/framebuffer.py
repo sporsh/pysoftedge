@@ -1,7 +1,7 @@
 import array
 
 
-class Canvas(object):
+class Framebuffer(object):
     def __init__(self, width, height):
         self.width = width
         self.height = height

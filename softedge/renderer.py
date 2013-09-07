@@ -1,4 +1,4 @@
-from softedge.canvas import Canvas
+from softedge.framebuffer import Framebuffer
 from softedge.raytrace import RayTracer
 from softedge.core import dot, normalize, reflect, Point3, Vector3, Ray
 
@@ -7,7 +7,7 @@ class RaytraceRenderer(object):
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.canvas = Canvas(width, height)
+        self.canvas = Framebuffer(width, height)
 
         self.raytracer = RayTracer()
         self.shader = shade_lambert
