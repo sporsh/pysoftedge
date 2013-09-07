@@ -3,21 +3,18 @@ from core import dot, normalize, cross, Sphere, Triangle
 
 
 class RayTracer(object):
-    def intersect(self, ray, obj, backface=True, quick=False):
-        return ALGORITHMS[type(obj)](ray, obj, backface=True, quick=False)
-
     def does_intersect(self, ray, objects):
         """Trace a ray into scene, and stop on any hit
         """
         for obj in objects:
-            if self.intersect(ray, obj, backface=True, quick=True):
+            if intersect(ray, obj, backface=True, quick=True):
                 return True
         return False
 
-    def cast(self, ray, objects):
+    def cast(self, ray, objects, backface):
         results = []
         for obj in objects:
-            result = self.intersect(ray, obj, backface=True, quick=False)
+            result = intersect(ray, obj, backface, quick=False)
             if result:
                 results.append(result)
         if results:
@@ -122,3 +119,6 @@ ALGORITHMS = {
     Sphere: intersect_Ray_Sphere,
     Triangle: intersect_Ray_Triangle
     }
+
+def intersect(ray, obj, backface=True, quick=False):
+    return ALGORITHMS[type(obj)](ray, obj, backface=True, quick=False)

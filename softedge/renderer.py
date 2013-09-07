@@ -1,6 +1,6 @@
 from softedge.canvas import Canvas
 from softedge.raytrace import RayTracer
-from softedge.core import dot, normalize, Point3, Vector3, Ray
+from softedge.core import dot, normalize, reflect, Point3, Vector3, Ray
 
 
 class RaytraceRenderer(object):
@@ -15,30 +15,39 @@ class RaytraceRenderer(object):
     def render(self, scene, camera):
         for y in xrange(self.height):
             for x in xrange(self.width):
+                results = []
                 ray = Ray(Point3(float(x), float(y), .0), camera.direction)
-                intersection = self.raytracer.cast(ray, scene.renderables)
-                if intersection:
-                    point = intersection.get_origin()
-
-                    # Find lights that are not occluded
-                    lights = []
-                    for light in scene.lights:
-                        direction = normalize(light.origin - point)
-                        ray = Ray(point, direction)
-                        if not self.raytracer.does_intersect(ray, scene.renderables):
-                            lights.append(light)
-
-                    shade = scene.ambient
-                    for light in lights:
-                        direction, intensity = light.get_illumination(point)
-                        shade += self.shader(intersection.get_normal(), direction) * intensity
-                    color = intersection.renderable.color * shade
-
-                    self.canvas.set_pixel(x, y, color)
+                self.trace(ray, scene, results, 1)
+                color = reduce(lambda a,b: a+b, results) / len(results)
+                self.canvas.set_pixel(x, y, color)
 
         filename = 'rtr_scene_camera'
         self.canvas.save(filename)
 
+    def trace(self, ray, scene, results, depth):
+        intersection = self.raytracer.cast(ray, scene.renderables, backface=False)
+        if intersection:
+            point = intersection.get_origin()
+            normal = intersection.get_normal()
+
+            # Find lights that are not occluded
+            lights = []
+            for light in scene.lights:
+                direction = normalize(light.origin - point)
+                ray = Ray(point, direction)
+                if not self.raytracer.does_intersect(ray, scene.renderables):
+                    lights.append(light)
+
+            shade = scene.ambient
+            for light in lights:
+                direction, intensity = light.get_illumination(point)
+                shade += self.shader(normal, direction) * intensity
+            results.append(intersection.renderable.color * shade)
+            if len(results) <= depth:
+                reflected_ray = Ray(point, reflect(ray.direction, normal))
+                self.trace(reflected_ray, scene, results, depth)
+        else:
+            results.append(scene.background)
 
 def shade_lambert(normal, direction):
     return max(.0, dot(direction, normal))

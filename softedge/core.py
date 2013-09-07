@@ -2,8 +2,9 @@ import math
 
 
 class Scene(object):
-    def __init__(self):
-        self.ambient = .05
+    def __init__(self, background, ambient):
+        self.background = background
+        self.ambient = ambient
         self.renderables = []
         self.lights = []
 
@@ -109,3 +110,6 @@ def normalize(vector):
     """Normalize a vector
     """
     return resize(vector, 1.0)
+
+def reflect(vector, normal):
+    return vector - (normal * (2 * dot(vector, normal)))

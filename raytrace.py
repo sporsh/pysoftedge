@@ -4,7 +4,7 @@ from softedge import color
 
 
 def main():
-    scene = Scene()
+    scene = Scene(color.GRAY, ambient=.5)
     scene.lights.append(Light(Point3(20.0, 120.0, 100.0), .8))
     scene.lights.append(Light(Point3(700.0, .0, .0), .4))
     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, color.YELLOW))
