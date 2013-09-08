@@ -11,7 +11,7 @@ class RaytraceRenderer(object):
         self.framebuffer = Framebuffer(width, height)
 
         self.raytracer = RayTracer()
-        self.shader = shade_lambert
+        self.shader = shade_phong
 
     def render(self, scene, camera):
         fov = 45
@@ -44,15 +44,15 @@ class RaytraceRenderer(object):
             # Find lights that are not occluded
             lights = []
             for light in scene.lights:
-                direction = normalize(light.origin - point)
-                ray = Ray(point, direction)
-                if not self.raytracer.does_intersect(ray, scene.renderables):
+                light_ray = Ray(point, normalize(light.origin - point))
+                if not self.raytracer.does_intersect(light_ray, scene.renderables):
                     lights.append(light)
 
             shade = scene.ambient
             for light in lights:
                 direction, intensity = light.get_illumination(point)
-                shade += self.shader(normal, direction) * intensity
+                view_d = normalize(ray.origin - point)
+                shade += self.shader(normal, direction, view_d) * intensity
             results.append(intersection.renderable.color * shade)
             if len(results) <= depth:
                 reflected_ray = Ray(point, reflect(ray.direction, normal))
@@ -61,10 +61,19 @@ class RaytraceRenderer(object):
             results.append(scene.background)
 
 def shade_lambert(normal, direction):
-    return max(.0, dot(direction, normal))
+    return max(.0, min(1.0, dot(direction, normal)))
 
 def shade_flat(normal, direction):
     return 1.0
 
 def shade_normal(normal, direction):
     return normalize(Vector3(1.0, 1.0, 1.0) - normal)
+
+def shade_phong(normal, light_direction, view_direction):
+    hardness = 60
+    intensity = 1.0
+    diffuse = shade_lambert(normal, light_direction)
+    h = normalize(light_direction + view_direction)
+    ndoth = max(.0, min(1.0, dot(normal, h)))
+    specular = math.pow(ndoth, hardness) * intensity
+    return diffuse + specular
