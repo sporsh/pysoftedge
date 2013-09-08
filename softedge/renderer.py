@@ -1,28 +1,39 @@
 from softedge.framebuffer import Framebuffer
 from softedge.raytrace import RayTracer
-from softedge.core import dot, normalize, reflect, Point3, Vector3, Ray
+from softedge.core import dot, normalize, reflect, Vector3, Ray
+import math
 
 
 class RaytraceRenderer(object):
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.canvas = Framebuffer(width, height)
+        self.framebuffer = Framebuffer(width, height)
 
         self.raytracer = RayTracer()
         self.shader = shade_lambert
 
     def render(self, scene, camera):
+        fov = 45
+        fov_radians = math.pi * fov / 2.0 / 180.0
+        half_width = math.tan(fov_radians)
+        half_height = .75 * half_width
+        pixel_width = half_width * 2 / self.framebuffer.width
+        pixel_height = half_height * 2 / self.framebuffer.height
+
         for y in xrange(self.height):
             for x in xrange(self.width):
                 results = []
-                ray = Ray(Point3(float(x), float(y), .0), camera.direction)
-                self.trace(ray, scene, results, 1)
+                xcomp = Vector3.X * (x * pixel_width - half_width)
+                ycomp = Vector3.Y * (y * pixel_height - half_height)
+                direction = normalize(camera.direction + xcomp + ycomp)
+                ray = Ray(camera.origin, direction)
+                self.trace(ray, scene, results, 2)
                 color = reduce(lambda a,b: a+b, results) / len(results)
-                self.canvas.set_pixel(x, y, color)
+                self.framebuffer.set_pixel(x, y, color)
 
         filename = 'rtr_scene_camera'
-        self.canvas.save(filename)
+        self.framebuffer.save(filename)
 
     def trace(self, ray, scene, results, depth):
         intersection = self.raytracer.cast(ray, scene.renderables, backface=False)
