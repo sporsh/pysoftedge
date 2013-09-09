@@ -1,66 +1,67 @@
 from softedge.renderer import RaytraceRenderer
-from softedge.core import Scene, Light, Camera, Sphere, Triangle, Point3, Vector3
+from softedge.core import Scene, Light, Camera, Sphere, Point3, Vector3,\
+    Triangle
 from softedge import color
 
 
 def main():
-    scene = Scene(color.BLACK, ambient=.2)
-    scene.lights.append(Light(Point3(-500.0, -500.0, -1000.0), 1.0))
-    scene.lights.append(Light(Point3(75.0, 25.0, -350.0), 1.0))
+    scene = Scene(color.BLACK, ambient=color.Color(.1, .1, .1))
 
-    white = color.Color(.8, .8, .8)
-    red = color.Color(.8, .5, .5)
-    green = color.Color(.5, .8, .5)
-    blue = color.Color(.5, .5, .8)
+    camera = Camera(Point3(250.0, 250.0, -800.0), Vector3.Z)
 
-    scene.renderables.append(Sphere(Point3(-200.0, -200.0, 200.0), 100.0, red))
-    scene.renderables.append(Sphere(Point3(.0,     -200.0, .0), 100.0, green))
-    scene.renderables.append(Sphere(Point3(200.0,  -200.0, 200.0), 100.0, blue))
+    scene.lights.append(Light(Point3(250.0, 499.9, 250.0), color.WHITE))
 
-    scene.renderables.append(Sphere(Point3(-200.0, .0,     .0), 100.0, green))
-    scene.renderables.append(Sphere(Point3(.0,     .0,     200.0), 250.0, white))
-    scene.renderables.append(Sphere(Point3(200.0,  .0,     .0), 100.0, red))
+    rbb = Point3(500.0,   0.0, 500.0)
+    lbb = Point3(  0.0,   0.0, 500.0)
+    ltb = Point3(  0.0, 500.0, 500.0)
+    rtb = Point3(500.0, 500.0, 500.0)
 
-    scene.renderables.append(Sphere(Point3(-200.0, 200.0, 200.0), 100.0, blue))
-    scene.renderables.append(Sphere(Point3(.0,     200.0, .0), 100.0, red))
-    scene.renderables.append(Sphere(Point3(200.0,  200.0, 200.0), 100.0, green))
+    rbf = Point3(500.0, 0.0,   0.0)
+    lbf = Point3(  0.0, 0.0,   0.0)
 
+    rtf = Point3(500.0, 500.0, 0.0)
+    ltf = Point3(  0.0, 500.0, 0.0)
 
-#     c = Point3(.0, .0, .0)
-#     tl = Point3(-100.0, 100.0, 100.0)
-#     tr = Point3(100.0, 100.0, 100.0)
-#     bl = Point3(-100.0, -100.0, 100.0)
-#     br = Point3(100.0, -100.0, 100.0)
-#     scene.renderables.append(Triangle((c, tl, tr), color.WHITE))
-#     scene.renderables.append(Triangle((c, tr, br), color.WHITE))
-#     scene.renderables.append(Triangle((c, bl, br), color.WHITE))
-#     scene.renderables.append(Triangle((c, bl, tl), color.WHITE))
+    white = color.Material(color.Color(.8, .8, .8))
+    white.specular_intensity = 1.0
+    red = color.Material(color.Color(.8, .4, .4), color.Color(.8, .4, .4))
+    red.specular_intensity = 1.0
+    green = color.Material(color.Color(.4, .8, .4), color.Color(.4, .8, .4))
+    green.specular_intensity = 1.0
 
-# ------
+    # Back
+    scene.renderables.append(Triangle((lbb, ltb, rtb), white))
+    scene.renderables.append(Triangle((rtb, rbb, lbb), white))
 
-#     scene.renderables.append(Sphere(Point3(320.0, 240.0, 400.0), 200.0, color.YELLOW))
-#     scene.renderables.append(Sphere(Point3(450.0, 200.0, 220.0), 40.0, color.RED))
-#     scene.renderables.append(Sphere(Point3(230.0, 350.0, 320.0), 100.0, color.GREEN))
-#     scene.renderables.append(Sphere(Point3(500.0, 400.0, 500.0), 250.0, color.BLUE))
-# 
-#     scene.renderables.append(Triangle((
-#                                        Point3(100.0, 50.0, 600.0),
-#                                        Point3(100.0, 400.0, 400.0),
-#                                        Point3(400.0, 100.0, 100.0),
-#                                        ), color.WHITE))
-#     scene.renderables.append(Triangle((
-#                                        Point3(100.0, 400.0, 400.0),
-#                                        Point3(200.0, 550.0, 800.0),
-#                                        Point3(400.0, 100.0, 100.0),
-#                                        ), color.WHITE))
+    # Floor
+    scene.renderables.append(Triangle((lbb, rbb, rbf), white))
+    scene.renderables.append(Triangle((rbf, lbf, lbb), white))
 
-# ------
+#     # Ceiling
+#     scene.renderables.append(Triangle((ltb, ltf, rtf), white))
+#     scene.renderables.append(Triangle((rtf, rtb, ltb), white))
 
-#     scene.renderables.append(Sphere(Point3(-150.0, .0, .0), 100.0, color.RED))
-#     scene.renderables.append(Sphere(Point3(.0, .0, .0), 100.0, color.GREEN))
-#     scene.renderables.append(Sphere(Point3(150.0, .0, .0), 100.0, color.BLUE))
+    # Left wall
+    scene.renderables.append(Triangle((lbb, lbf, ltf), red))
+    scene.renderables.append(Triangle((ltf, ltb, lbb), red))
 
-    camera = Camera(Point3(.0, .0, -1000.0), Vector3.Z)
+    # Right wall
+    scene.renderables.append(Triangle((rbb, rtb, rtf), green))
+    scene.renderables.append(Triangle((rtf, rbf, rbb), green))
+
+    w = color.Color(.9, .9, .9)
+    b1 = color.Material(w, w)
+    b1.diffuse_intensity = .2
+    b1.specular_intensity = 2.0
+    b1.specular_hardness = 100
+
+    b2 = color.Material(w, color.BLACK, w)
+    b2.diffuse_intensity = .2
+    b2.specular_intensity = 2.0
+    b2.specular_hardness = 100
+
+    scene.renderables.append(Sphere(Point3(150.0,  350.0, 350.0), 100.0, b1))
+    scene.renderables.append(Sphere(Point3(350.0,  150.0, 150.0), 100.0, b2))
 
     renderer = RaytraceRenderer(640, 480)
     renderer.render(scene, camera)

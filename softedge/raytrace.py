@@ -12,14 +12,14 @@ class RayTracer(object):
         return False
 
     def cast(self, ray, objects, backface):
-        results = []
+        result = None
         for obj in objects:
-            result = intersect(ray, obj, backface, quick=False)
-            if result:
-                results.append(result)
-        if results:
-            results.sort(key=lambda i: i.t)
-            return results[0]
+            new_result = intersect(ray, obj, backface, quick=False)
+            if not new_result:
+                continue
+            elif not result or new_result.t < result.t:
+                result = new_result
+        return result
 
 
 class RayIntersection(object):
@@ -29,24 +29,23 @@ class RayIntersection(object):
         self.t = t
         self.renderable = renderable
 
-    def get_origin(self, offset=.1):
-        if self._origin is None:
-            self._origin = self.ray.point(self.t - offset)
-        return self._origin
+    def get_point(self):
+        return self.ray.origin + self.ray.direction * self.t
 
     def get_normal(self):
         raise NotImplementedError()
 
 
 class SphereRayIntersection(RayIntersection):
-    def __init__(self, ray, t, sphere):
+    def __init__(self, ray, t, sphere, inside):
         self._normal = None
         self.sphere = sphere
+        self.inside = inside
         RayIntersection.__init__(self, ray, t, sphere)
 
     def get_normal(self):
         if self._normal is None:
-            self._normal = normalize(self.get_origin() - self.sphere.origin)
+            self._normal = normalize(self.get_point() - self.sphere.origin) * (-1.0 if self.inside else 1.0)
         return self._normal
 
 
@@ -56,6 +55,7 @@ class TriangleRayIntersection(RayIntersection):
 
 
 def intersect_Ray_Sphere(ray, sphere, backface=True, quick=False):
+    inside = False
     m = ray.origin - sphere.origin
     c = dot(m, m) - sphere.radius**2.0
 
@@ -76,9 +76,10 @@ def intersect_Ray_Sphere(ray, sphere, backface=True, quick=False):
     sqrt_discr = math.sqrt(discr)
     t = -b - sqrt_discr
     if t < .0:
+        inside = True
         t = -b + sqrt_discr
 
-    return SphereRayIntersection(ray, t, sphere)
+    return SphereRayIntersection(ray, t, sphere, inside)
 
 
 def intersect_Ray_Triangle(ray, triangle, backface=True, quick=False):
@@ -89,7 +90,7 @@ def intersect_Ray_Triangle(ray, triangle, backface=True, quick=False):
     qp = ray.direction * -1
 
     d = dot(qp, n)
-    if (d <= .0 and not backface):
+    if (d == .0 or (d < .0 and not backface)):
         # Plane and ray are paralell or pointing away
         return False
 
@@ -119,6 +120,7 @@ ALGORITHMS = {
     Sphere: intersect_Ray_Sphere,
     Triangle: intersect_Ray_Triangle
     }
+
 
 def intersect(ray, obj, backface=True, quick=False):
     return ALGORITHMS[type(obj)](ray, obj, backface=True, quick=False)

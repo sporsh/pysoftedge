@@ -7,12 +7,13 @@ class Scene(object):
         self.ambient = ambient
         self.renderables = []
         self.lights = []
+        self.refractive_index = 1.0
 
 
 class Light(object):
-    def __init__(self, origin, intensity):
+    def __init__(self, origin, color, intensity=1.0):
         self.origin = origin
-        self.intensity = intensity
+        self.color = color * intensity
 
     def get_illumination(self, point):
         """Get illumination details for a specific spatial point
@@ -61,9 +62,6 @@ class Ray(object):
         self.origin = origin
         self.direction = direction
 
-    def point(self, t):
-        return self.origin + (self.direction * t)
-
 
 class Tuple3(tuple):
     def __new__(cls, x, y, z):
@@ -93,17 +91,17 @@ Vector3.Z = Vector3(.0, .0, 1.0)
 
 
 def dot(A, B):
-    """Compute the dot product of two vectors
-    """
     return sum(a * b for a, b in zip(A, B))
 
 
 def cross(A, B):
-    """Compute the cross product of two vectors
-    """
     return Tuple3(A[1]*B[2] - A[2]*B[1],
                   A[2]*B[0] - A[0]*B[2],
                   A[0]*B[1] - A[1]*B[0],)
+
+
+def hadamard(A, B):
+    return Tuple3(A[0]*B[0], A[1]*B[1], A[2]*B[2])
 
 
 def resize(vector, scalar):
@@ -111,9 +109,15 @@ def resize(vector, scalar):
 
 
 def normalize(vector):
-    """Normalize a vector
-    """
     return resize(vector, 1.0)
+
 
 def reflect(vector, normal):
     return vector - (normal * (2 * dot(vector, normal)))
+
+
+def refract(vector, normal, n1, n2):
+    n = n1 / n2
+    cosi = -dot(normal, vector)
+    cost2 = 1.0 - n*n * (1.0 - cosi*cosi)
+    return (vector * n) + (normal * (n * cosi - math.sqrt(abs(cost2))))
