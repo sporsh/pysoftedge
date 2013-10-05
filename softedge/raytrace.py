@@ -54,7 +54,7 @@ class TriangleRayIntersection(RayIntersection):
         return normalize(self.renderable.plane.normal)
 
 
-def intersect_Ray_Sphere(ray, sphere, backface=True, quick=False):
+def intersect_Ray_Sphere(ray, sphere, backface, quick):
     inside = False
     m = ray.origin - sphere.origin
     c = dot(m, m) - sphere.radius**2.0
@@ -82,7 +82,7 @@ def intersect_Ray_Sphere(ray, sphere, backface=True, quick=False):
     return SphereRayIntersection(ray, t, sphere, inside)
 
 
-def intersect_Ray_Triangle(ray, triangle, backface=True, quick=False):
+def intersect_Ray_Triangle(ray, triangle, backface, quick):
     A, B, C = triangle.points
     ab = B - A
     ac = C - A
@@ -108,12 +108,12 @@ def intersect_Ray_Triangle(ray, triangle, backface=True, quick=False):
     if (w <.0 or v + w > d):
         return False
 
-    if quick is not None:
-        ood = 1.0 / d
-        t *= ood
-        return TriangleRayIntersection(ray, t, triangle)
+    if quick:
+        return True
 
-    return True
+    ood = 1.0 / d
+    t *= ood
+    return TriangleRayIntersection(ray, t, triangle)
 
 
 ALGORITHMS = {
@@ -122,5 +122,5 @@ ALGORITHMS = {
     }
 
 
-def intersect(ray, obj, backface=True, quick=False):
-    return ALGORITHMS[type(obj)](ray, obj, backface=True, quick=False)
+def intersect(ray, obj, backface, quick):
+    return ALGORITHMS[type(obj)](ray, obj, backface, quick)
