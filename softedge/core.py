@@ -58,13 +58,18 @@ class Sphere(Renderable):
 
 
 class Ray(object):
+    NUM = 0
     def __init__(self, origin, direction):
+        Ray.NUM += 1
         self.origin = origin
         self.direction = direction
 
 
 class Tuple3(tuple):
+    NUM = 0
+
     def __new__(cls, x, y, z):
+        Tuple3.NUM += 1
         return tuple.__new__(cls, (x, y, z))
 
     def __add__(self, other):

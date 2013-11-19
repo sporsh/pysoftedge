@@ -1,6 +1,7 @@
 from core import Tuple3 as Color
 from softedge.core import dot, normalize
 import math
+import struct
 
 
 WHITE = Color(1.0, 1.0, 1.0)
@@ -13,6 +14,15 @@ YELLOW = Color(1.0, 1.0, .0)
 GRAY = Color(.5, .5, .5)
 LIGHT_GRAY = Color(.75, .75, .75)
 DARK_GRAY = Color(.25, .25, .25)
+
+
+def to_intv(color):
+    for component in color:
+        yield min(int(component * 255.), 255)
+    yield 0xff
+
+def to_str(color):
+    return struct.pack('4B', *(to_intv(color)))
 
 
 class Material(object):

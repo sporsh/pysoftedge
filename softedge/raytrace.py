@@ -21,6 +21,21 @@ class RayTracer(object):
                 result = new_result
         return result
 
+    def trace(self, ray, objects):
+        trace = [(ray, None)]
+        self._r_trace(trace, objects)
+
+    def _r_trace(self, trace, objects):
+        ray, color, opacity = trace[-1]
+        i = self.cast(ray, objects, backface=False)
+        if i:
+            self._r_trace(trace, objects)
+
+class Trace(object):
+    def __init__(self, depth, saturation):
+        self.depth = depth
+        self.saturation = saturation
+        self.traces = []
 
 class RayIntersection(object):
     def __init__(self, ray, t, renderable):
@@ -116,12 +131,46 @@ def intersect_Ray_Triangle(ray, triangle, backface, quick, epsilon):
 
     ood = 1.0 / d
     t *= ood
+
     return TriangleRayIntersection(ray, t, triangle)
 
 
+def quadric(a, b, c):
+    disc = b * b - 4 * a * c
+    if disc < 0:
+        return
+
+    disc = math.sqrt(disc)
+    if b < 0:
+        q = -0.5 * (b - disc)
+    else:
+        q = -0.5 * (b + disc)
+
+    t0, t1 = q / a, c / q
+    return (t0, t1) if t0 < t1 else (t1, t0)
+
+
+def intersect_Ray_Sphere_quadric(ray, sphere, backface, quick, epsilon):
+    oc = ray.origin - sphere.origin
+
+    qa = dot(ray.direction, ray.direction)
+    qb = dot(ray.direction, oc) * 2
+    qc = dot(oc, oc) - sphere.radius**2.
+    t = quadric(qa, qb, qc)
+    if t:
+        t0, t1 = t
+        if t1 <= epsilon:
+            return False
+        elif t0 > epsilon:
+            return SphereRayIntersection(ray, t0, sphere, False)
+        else:
+            return SphereRayIntersection(ray, t1, sphere, True)
+
+
 ALGORITHMS = {
+#     Sphere: intersect_Ray_Sphere_quadric,
     Sphere: intersect_Ray_Sphere,
-    Triangle: intersect_Ray_Triangle
+    Triangle: intersect_Ray_Triangle,
     }
 
 
