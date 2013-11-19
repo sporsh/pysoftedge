@@ -1,0 +1,9 @@
+*.pyc
+
+web/node_modules
+.settings
+.project
+.pydevproject
+build/
+rtr_scene_camera.ppm
+twistd.log

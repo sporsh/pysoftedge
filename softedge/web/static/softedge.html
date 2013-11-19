@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html ng-app="seApp">
+<head>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap-theme.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+
+<script>
+    function start_render() {
+        console.log("Starging render");
+        var canvas = document.getElementById("canvas");
+        render(canvas);
+    };
+
+    function save_image(anchor) {
+        var canvas = document.getElementById("canvas");
+        var src = canvas.toDataURL('image/png');
+        anchor.href = src;
+    };
+
+
+    function render_region(ctx, sx, sy, sw, sh) {
+    	var xhr = new XMLHttpRequest();
+    	xhr.open("GET", "/render?sx="+sx+"&sy="+sy+"&sw="+sw+"&sh="+sh, true);
+    	xhr.responseType = "arraybuffer";
+    	xhr.onload = function () {
+    		var id = ctx.createImageData(sw, sh);
+    		var data = new Uint8Array(this.response);
+    		for (var i = 0; i < data.length; i++) {
+    				id.data[i] = data[i];
+    		}
+    		ctx.putImageData(id, sx, sy);
+    	};
+    	console.log("REQUESTING", sx, sy, sw, sh);
+    	xhr.send(null)
+    };
+
+    function render (canvas) {
+    	var n = 8;
+    	var ctx = canvas.getContext("2d");
+    	var sw = canvas.width / n;
+    	var sh = canvas.height / n;
+    	for (var y=0; y<n; y++) {
+    		for (var x=0; x<n; x++) {
+    			var sx = sw * x;
+    			var sy = sh * y;
+    			render_region(ctx, sx, sy, sw, sh);
+    		}
+    	}
+    };
+
+
+    var myApp = angular.module('seApp', []);
+
+    myApp.controller('seRender', function($scope, $http) {
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+        $scope.render = function(x, y, width, height, canvas) {
+            $http({
+                method : 'GET',
+                url : "/render",
+                params: {sx: x, sy: y, sw: width, sh: height},
+                responseType : 'arraybuffer',
+                }).
+                success(function(data, status, headers, config) {
+                    var data = new Uint8Array(data);
+                    var id = ctx.createImageData(width, height);
+                    for (var i = 0; i < data.length; i++) {
+                            id.data[i] = data[i];
+                    }
+                    ctx.putImageData(id, x, y)
+                    console.log(data, status, headers, config);
+                });
+        }
+    });
+
+</script>
+
+</head>
+<body ng-app="seApp" ng-controller="seRender">
+    <canvas id="canvas" width="640" height="480"
+        style="border: 1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.</canvas>
+    <button ng-click="render(0, 0, 100, 100, this)">Render!</button>
+    <button onclick="save_image()">Download</button>
+    <a id="image" class="btn btn-primary btn-lg" role="button"
+        download="render.png" onclick="save_image(this)">Save As...</a>
+
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="60"
+            aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
+            <span class="sr-only">60% Complete</span>
+        </div>
+    </div>
+
+    <!--
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+
+-->
+</body>
+
+</html>

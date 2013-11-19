@@ -7,7 +7,7 @@ from softedge import color
 class Trace(object):
     def __init__(self):
         self.color = Vector3.ZERO
-
+        self.object = None
 
 class RaytraceRenderer(object):
     MAX_DEPTH = 5
@@ -50,24 +50,25 @@ class RaytraceRenderer(object):
                 direction = normalize(camera.direction - xcomp - ycomp)
                 ray = Ray(camera.origin, direction)
                 trace = Trace()
-                self.trace(ray, scene, trace, Vector3(1.0, 1.0, 1.0), scene.refractive_index, None)
+                self.trace(ray, scene, trace, Vector3(1.0, 1.0, 1.0), scene.refractive_index)
                 yield trace.color
 
-    def trace(self, ray, scene, trace, opacity, refractive_index, prev, depth=0):
+    def trace(self, ray, scene, trace, opacity, refractive_index, depth=0):
         intersection = self.raytracer.cast(ray, scene.renderables, backface=False)
         if intersection:
             obj = intersection.renderable
             material = obj.color
             normal = intersection.get_normal()
+            point = intersection.get_point()
             view_d = normalize(ray.direction * -1)
 
-            if obj is prev:
+            if obj is trace.object:
                 # Exiting object
                 new_refractive_index = scene.refractive_index
             else:
                 # Entering object
                 new_refractive_index = material.refractive_index
-            point = intersection.get_point()
+            trace.object = obj
 
             # Find lights that are not occluded
             shade = scene.ambient
@@ -86,10 +87,10 @@ class RaytraceRenderer(object):
             reflect_opacity = hadamard(opacity, material.specular_color)
             if all(i > .1 for i in reflect_opacity):
                 reflected_ray = Ray(point, reflect(ray.direction, normal))
-                self.trace(reflected_ray, scene, trace, reflect_opacity, refractive_index, obj, depth + 1)
+                self.trace(reflected_ray, scene, trace, reflect_opacity, refractive_index, depth + 1)
 
             # Calculate refractions
             refract_opacity = hadamard(opacity, material.transparent_color)
             if all(i > .1 for i in refract_opacity):
                 refracted_ray = Ray(point, refract(ray.direction, normal, refractive_index, new_refractive_index))
-                self.trace(refracted_ray, scene, trace, refract_opacity, material.refractive_index, obj, depth + 1)
+                self.trace(refracted_ray, scene, trace, refract_opacity, material.refractive_index, depth + 1)
