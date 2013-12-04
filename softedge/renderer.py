@@ -1,7 +1,6 @@
-from softedge.raytrace import RayTracer
-from softedge.core import normalize, reflect, Vector3, Ray, hadamard, cross, refract
 import math
-from softedge import color
+
+from softedge.core import normalize, reflect, Vector3, Ray, hadamard, cross, refract
 
 
 class Trace(object):
@@ -9,13 +8,13 @@ class Trace(object):
         self.color = Vector3.ZERO
         self.object = None
 
+
 class RaytraceRenderer(object):
     MAX_DEPTH = 5
 
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.raytracer = RayTracer()
 
     def render_region(self, scene, camera, sx, sy, sw, sh):
         fov = 45. / 2
@@ -36,11 +35,11 @@ class RaytraceRenderer(object):
                 direction = normalize(camera.direction - xcomp - ycomp)
                 ray = Ray(camera.origin, direction)
                 trace = Trace()
-                self.trace(ray, scene, trace, Vector3(1.0, 1.0, 1.0), scene.refractive_index)
+                self.trace_ray(ray, scene, trace, Vector3(1.0, 1.0, 1.0), scene.refractive_index)
                 yield trace.color
 
-    def trace(self, ray, scene, trace, opacity, refractive_index, depth=0):
-        intersection = self.raytracer.cast(ray, scene.renderables, backface=False)
+    def trace_ray(self, ray, scene, trace, opacity, refractive_index, depth=0):
+        intersection = self.cast_ray(ray, scene.renderables, backface=False)
         if intersection:
             obj = intersection.renderable
             material = obj.color
@@ -60,7 +59,7 @@ class RaytraceRenderer(object):
             shade = scene.ambient
             for light in scene.lights:
                 light_ray = Ray(point, normalize(light.origin - point))
-                if not self.raytracer.does_intersect(light_ray, scene.renderables):
+                if not self.test_ray(light_ray, scene.renderables):
                     light_d = normalize(light.origin - point)
                     shade += light.color * material.shade(normal, light_d, view_d)
             trace.color += hadamard(hadamard(shade, material.diffuse_color), opacity)
@@ -73,10 +72,28 @@ class RaytraceRenderer(object):
             reflect_opacity = hadamard(opacity, material.specular_color)
             if all(i > .1 for i in reflect_opacity):
                 reflected_ray = Ray(point, reflect(ray.direction, normal))
-                self.trace(reflected_ray, scene, trace, reflect_opacity, refractive_index, depth + 1)
+                self.trace_ray(reflected_ray, scene, trace, reflect_opacity, refractive_index, depth + 1)
 
             # Calculate refractions
             refract_opacity = hadamard(opacity, material.transparent_color)
             if all(i > .1 for i in refract_opacity):
                 refracted_ray = Ray(point, refract(ray.direction, normal, refractive_index, new_refractive_index))
-                self.trace(refracted_ray, scene, trace, refract_opacity, material.refractive_index, depth + 1)
+                self.trace_ray(refracted_ray, scene, trace, refract_opacity, material.refractive_index, depth + 1)
+
+    def test_ray(self, ray, objects):
+        """Trace a ray into scene, and stop on any hit
+        """
+        for obj in objects:
+            if obj.intersect(ray, obj, backface=True, quick=True, epsilon=.1):
+                return True
+        return False
+
+    def cast_ray(self, ray, objects, backface):
+        result = None
+        for obj in objects:
+            new_result = obj.intersect(ray, obj, backface, quick=False, epsilon=.1)
+            if not new_result:
+                continue
+            elif not result or new_result.t < result.t:
+                result = new_result
+        return result

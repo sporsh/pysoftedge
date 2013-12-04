@@ -1,6 +1,8 @@
-
-from softedge.core import Scene, Light, Point3, Sphere, Triangle
+from softedge.core import Scene, Light, Point3
+from softedge.renderables import Sphere, Triangle
 from softedge import color
+
+
 scene = Scene(color.BLACK, ambient=color.Color(.1, .1, .1))
 
 scene.lights.append(Light(Point3(250.0, 499.9, 250.0), color.WHITE))
