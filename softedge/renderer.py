@@ -17,20 +17,6 @@ class RaytraceRenderer(object):
         self.height = height
         self.raytracer = RayTracer()
 
-    def render(self, scene, camera):
-        filename = 'rtr_scene_camera.pam'
-        with open(filename, 'wb') as f:
-            f.write('P7\n'
-                    'WIDTH %d\n'
-                    'HEIGHT %d\n'
-                    'DEPTH 4\n'
-                    'MAXVAL 255\n'
-                    'TUPLTYPE RGB_ALPHA\n'
-                    'ENDHDR\n' % (self.width, self.height))
-            for color_ in self.render_region(scene, camera, 0, 0, self.width, self.height):
-                f.write(color.to_str(color_))
-        print "Number of rays:", Ray.NUM, "tuples:", Vector3.NUM
-
     def render_region(self, scene, camera, sx, sy, sw, sh):
         fov = 45. / 2
         fov_radians = fov * math.pi / 180.
