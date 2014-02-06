@@ -26,24 +26,24 @@ green = color.Material(color.Color(.4, .8, .4), color.Color(.4, .8, .4))
 green.specular_intensity = 1.0
 
 # Back
-scene.renderables.append(Triangle((lbb, ltb, rtb), white))
-scene.renderables.append(Triangle((rtb, rbb, lbb), white))
+scene.renderables.append(Triangle(lbb, ltb, rtb, white))
+scene.renderables.append(Triangle(rtb, rbb, lbb, white))
 
 # Floor
-scene.renderables.append(Triangle((lbb, rbb, rbf), white))
-scene.renderables.append(Triangle((rbf, lbf, lbb), white))
+scene.renderables.append(Triangle(lbb, rbb, rbf, white))
+scene.renderables.append(Triangle(rbf, lbf, lbb, white))
 
 #     # Ceiling
 #     scene.renderables.append(Triangle((ltb, ltf, rtf), white))
 #     scene.renderables.append(Triangle((rtf, rtb, ltb), white))
 
 # Left wall
-scene.renderables.append(Triangle((lbb, lbf, ltf), red))
-scene.renderables.append(Triangle((ltf, ltb, lbb), red))
+scene.renderables.append(Triangle(lbb, lbf, ltf, red))
+scene.renderables.append(Triangle(ltf, ltb, lbb, red))
 
 # Right wall
-scene.renderables.append(Triangle((rbb, rtb, rtf), green))
-scene.renderables.append(Triangle((rtf, rbf, rbb), green))
+scene.renderables.append(Triangle(rbb, rtb, rtf, green))
+scene.renderables.append(Triangle(rtf, rbf, rbb, green))
 
 w = color.WHITE
 b = color.BLACK

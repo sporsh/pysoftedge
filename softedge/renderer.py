@@ -39,13 +39,14 @@ class RaytraceRenderer(object):
                 yield trace.color
 
     def trace_ray(self, ray, scene, trace, opacity, refractive_index, depth=0):
+        # Stop recursion if we have reached full depth, or are fully saturated
+        if depth >= self.MAX_DEPTH or all(c >= 1.0 for c in trace.color):
+            return
+
         intersection = self.cast_ray(ray, scene.renderables, backface=False)
         if intersection:
             obj = intersection.renderable
             material = obj.color
-            normal = intersection.get_normal()
-            point = intersection.get_point()
-            view_d = normalize(ray.direction * -1)
 
             if obj is trace.object:
                 # Exiting object
@@ -58,26 +59,22 @@ class RaytraceRenderer(object):
             # Find lights that are not occluded
             shade = scene.ambient
             for light in scene.lights:
-                light_ray = Ray(point, normalize(light.origin - point))
+                light_d = normalize(light.origin - intersection.point)
+                light_ray = Ray(intersection.point, light_d)
                 if not self.test_ray(light_ray, scene.renderables):
-                    light_d = normalize(light.origin - point)
-                    shade += light.color * material.shade(normal, light_d, view_d)
+                    shade += light.color * material.shade(intersection.normal, light_d, ray.direction)
             trace.color += hadamard(hadamard(shade, material.diffuse_color), opacity)
-
-            # Stop recursion if we have reached full depth, or are fully saturated
-            if depth >= self.MAX_DEPTH or all(c >= 1.0 for c in trace.color):
-                return
 
             # Calculate reflections
             reflect_opacity = hadamard(opacity, material.specular_color)
             if all(i > .1 for i in reflect_opacity):
-                reflected_ray = Ray(point, reflect(ray.direction, normal))
+                reflected_ray = Ray(intersection.point, reflect(ray.direction, intersection.normal))
                 self.trace_ray(reflected_ray, scene, trace, reflect_opacity, refractive_index, depth + 1)
 
             # Calculate refractions
             refract_opacity = hadamard(opacity, material.transparent_color)
             if all(i > .1 for i in refract_opacity):
-                refracted_ray = Ray(point, refract(ray.direction, normal, refractive_index, new_refractive_index))
+                refracted_ray = Ray(intersection.point, refract(ray.direction, intersection.normal, refractive_index, new_refractive_index))
                 self.trace_ray(refracted_ray, scene, trace, refract_opacity, material.refractive_index, depth + 1)
 
     def test_ray(self, ray, objects):

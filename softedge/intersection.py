@@ -4,39 +4,31 @@ from softedge.core import dot, normalize, cross
 
 class RayIntersection(object):
     def __init__(self, ray, t, renderable):
-        self._origin = None
+        self.point = ray.origin + ray.direction * t
         self.ray = ray
         self.t = t
         self.renderable = renderable
 
-    def get_point(self):
-        return self.ray.origin + self.ray.direction * self.t
-
-    def get_normal(self):
-        raise NotImplementedError()
-
 
 class SphereRayIntersection(RayIntersection):
     def __init__(self, ray, t, sphere, inside):
-        self._normal = None
+        RayIntersection.__init__(self, ray, t, sphere)
+        self.normal = normalize(self.point - sphere.origin)
+        if inside:
+            self.normal = self.normal * -1
         self.sphere = sphere
         self.inside = inside
-        RayIntersection.__init__(self, ray, t, sphere)
-
-    def get_normal(self):
-        if self._normal is None:
-            self._normal = normalize(self.get_point() - self.sphere.origin) * (-1.0 if self.inside else 1.0)
-        return self._normal
 
 
 class TriangleRayIntersection(RayIntersection):
-    def get_normal(self):
-        return normalize(self.renderable.plane.normal)
+    def __init__(self, ray, t, renderable):
+        RayIntersection.__init__(self, ray, t, renderable)
+        self.normal = normalize(renderable.plane.normal)
 
 
 def intersect_Ray_Sphere(ray, sphere, backface, quick, epsilon):
     m = ray.origin - sphere.origin
-    c = dot(m, m) - sphere.radius**2.0
+    c = dot(m, m) - sphere.radius*sphere.radius
 
     if quick and c < -epsilon:
         return True
@@ -58,36 +50,31 @@ def intersect_Ray_Sphere(ray, sphere, backface, quick, epsilon):
     if t < epsilon:
         inside = True
         t = -b + sqrt_discr
-
-    if t < epsilon:
-        return False
+        if t < epsilon:
+            return False
 
     return SphereRayIntersection(ray, t, sphere, inside)
 
 
 def intersect_Ray_Triangle(ray, triangle, backface, quick, epsilon):
-    A, B, C = triangle.points
-    ab = B - A
-    ac = C - A
-    n = triangle.plane.normal
     qp = ray.direction * -1
 
-    d = dot(qp, n)
+    d = dot(qp, triangle.plane.normal)
     if (d == .0 or (d < .0 and not backface)):
         # Plane and ray are paralell or pointing away
         return False
 
-    ap = ray.origin - A;
-    t = dot(ap, n)
+    ap = ray.origin - triangle.a
+    t = dot(ap, triangle.plane.normal)
     if t < .0:
         return False
 
     e = cross(qp, ap)
-    v = dot(ac, e)
+    v = dot(triangle.ac, e)
     if (v < .0 or v > d):
         return False
 
-    w = -dot(ab, e)
+    w = -dot(triangle.ab, e)
     if (w <.0 or v + w > d):
         return False
 

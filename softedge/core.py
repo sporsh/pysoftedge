@@ -53,6 +53,7 @@ class Tuple3(tuple):
     def length(self):
         return math.sqrt(sum(c*c for c in self))
 
+
 Point3 = Tuple3
 Vector3 = Tuple3
 Vector3.ZERO = Vector3(.0, .0, .0)
