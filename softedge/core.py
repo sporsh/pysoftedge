@@ -39,19 +39,27 @@ class Tuple3(tuple):
         return tuple.__new__(cls, (x, y, z))
 
     def __add__(self, other):
-        return type(self)(*(a+b for a, b in zip(self, other)))
+        return type(self)(self[0] + other[0],
+                          self[1] + other[1],
+                          self[2] + other[2])
 
     def __sub__(self, other):
-        return type(self)(*(a-b for a, b in zip(self, other)))
+        return type(self)(self[0] - other[0],
+                          self[1] - other[1],
+                          self[2] - other[2])
 
     def __mul__(self, scalar):
-        return type(self)(*(c*scalar for c in self))
+        return type(self)(self[0] * scalar,
+                          self[1] * scalar,
+                          self[2] * scalar)
 
     def __div__(self, scalar):
-        return type(self)(*(c/scalar for c in self))
+        return type(self)(self[0] / scalar,
+                          self[1] / scalar,
+                          self[2] / scalar)
 
     def length(self):
-        return math.sqrt(sum(c*c for c in self))
+        return math.sqrt(dot(self, self))
 
 
 Point3 = Tuple3
@@ -63,17 +71,17 @@ Vector3.Z = Vector3(.0, .0, 1.0)
 
 
 def dot(A, B):
-    return sum(a * b for a, b in zip(A, B))
+    return A[0] * B[0] + A[1] * B[1] + A[2] * B[2]
 
 
 def cross(A, B):
-    return Tuple3(A[1]*B[2] - A[2]*B[1],
-                  A[2]*B[0] - A[0]*B[2],
-                  A[0]*B[1] - A[1]*B[0],)
+    return type(A)(A[1] * B[2] - A[2] * B[1],
+                   A[2] * B[0] - A[0] * B[2],
+                   A[0] * B[1] - A[1] * B[0])
 
 
 def hadamard(A, B):
-    return Tuple3(A[0]*B[0], A[1]*B[1], A[2]*B[2])
+    return type(A)(A[0] * B[0], A[1] * B[1], A[2] * B[2])
 
 
 def resize(vector, scalar):
@@ -91,5 +99,5 @@ def reflect(vector, normal):
 def refract(vector, normal, n1, n2):
     n = n1 / n2
     cosi = -dot(normal, vector)
-    cost2 = 1.0 - n*n * (1.0 - cosi*cosi)
+    cost2 = 1.0 - n * n * (1.0 - cosi * cosi)
     return (vector * n) + (normal * (n * cosi - math.sqrt(abs(cost2))))
