@@ -6,9 +6,6 @@ from twisted.web.server import Site, NOT_DONE_YET
 from twisted.web import resource, static
 from twisted.internet.protocol import ProcessProtocol
 
-from scripts.create_scene import save_scene
-
-
 IPC_FD = 4 # fd to use for passing render data
 SCENE_FILENAME = 'scene.pickle'
 
@@ -52,7 +49,8 @@ class RenderResource(resource.Resource):
 
 
 if __name__ == '__main__':
-    save_scene(SCENE_FILENAME)
+#     from scripts.create_scene import save_scene
+#     save_scene(SCENE_FILENAME)
 
     root = static.File('web/static')
     root.putChild('render', RenderResource())

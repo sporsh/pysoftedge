@@ -2,17 +2,16 @@ import os
 import cPickle as pickle
 from softedge.color import to_str as color_to_str
 
+
 def render(filename, fd, sx, sy, sw, sh):
     print "RENDERING REGION x={}, y={}, w={}, h={}".format(sx, sy, sw, sh)
-    from softedge.renderer import RaytraceRenderer
-    from softedge.core import Camera, Point3, Vector3
+    from softedge.renderer import Sampler
 
     with open(filename, 'r') as f:
         scene = pickle.load(f)
 
-    camera = Camera(Point3(250.0, 250.0, -800.0), Vector3.Z)
-    renderer = RaytraceRenderer(640, 480)
-    for color in renderer.render_region(scene, camera, sx, sy, sw, sh):
+    sampler = Sampler(scene.geometry, scene.lights)
+    for color in sampler.sample(scene.camera, 640, 480, sx, sy, sw, sh):
         os.write(fd, color_to_str(color))
 
 

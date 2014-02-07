@@ -1,5 +1,4 @@
 import math
-from softedge.core import dot, normalize, cross
 
 
 class RayIntersection(object):
@@ -13,7 +12,7 @@ class RayIntersection(object):
 class SphereRayIntersection(RayIntersection):
     def __init__(self, ray, t, sphere, inside):
         RayIntersection.__init__(self, ray, t, sphere)
-        self.normal = normalize(self.point - sphere.origin)
+        self.normal = (self.point - sphere.origin).normalize()
         if inside:
             self.normal = self.normal * -1
         self.sphere = sphere
@@ -23,17 +22,17 @@ class SphereRayIntersection(RayIntersection):
 class TriangleRayIntersection(RayIntersection):
     def __init__(self, ray, t, renderable):
         RayIntersection.__init__(self, ray, t, renderable)
-        self.normal = normalize(renderable.plane.normal)
+        self.normal = (renderable.plane.normal).normalize()
 
 
 def intersect_Ray_Sphere(ray, sphere, backface, quick, epsilon):
     m = ray.origin - sphere.origin
-    c = dot(m, m) - sphere.radius*sphere.radius
+    c = m.dot(m) - sphere.radius*sphere.radius
 
     if quick and c < -epsilon:
         return True
 
-    b = dot(m, ray.direction)
+    b = m.dot(ray.direction)
     if b > .0:
         return False
 
@@ -59,22 +58,22 @@ def intersect_Ray_Sphere(ray, sphere, backface, quick, epsilon):
 def intersect_Ray_Triangle(ray, triangle, backface, quick, epsilon):
     qp = ray.direction * -1
 
-    d = dot(qp, triangle.plane.normal)
+    d = qp.dot(triangle.plane.normal)
     if (d == .0 or (d < .0 and not backface)):
         # Plane and ray are paralell or pointing away
         return False
 
     ap = ray.origin - triangle.a
-    t = dot(ap, triangle.plane.normal)
+    t = ap.dot(triangle.plane.normal)
     if t < .0:
         return False
 
-    e = cross(qp, ap)
-    v = dot(triangle.ac, e)
+    e = qp.cross(ap)
+    v = triangle.ac.dot(e)
     if (v < .0 or v > d):
         return False
 
-    w = -dot(triangle.ab, e)
+    w = -triangle.ab.dot(e)
     if (w <.0 or v + w > d):
         return False
 
@@ -105,9 +104,9 @@ def quadric(a, b, c):
 def intersect_Ray_Sphere_quadric(ray, sphere, backface, quick, epsilon):
     oc = ray.origin - sphere.origin
 
-    qa = dot(ray.direction, ray.direction)
-    qb = dot(ray.direction, oc) * 2
-    qc = dot(oc, oc) - sphere.radius**2.
+    qa = ray.direction.dot(ray.direction)
+    qb = ray.direction.dot(oc) * 2
+    qc = oc.dot(oc) - sphere.radius**2.
     t = quadric(qa, qb, qc)
     if t:
         t0, t1 = t

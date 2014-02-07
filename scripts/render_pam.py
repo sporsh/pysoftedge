@@ -1,14 +1,12 @@
 from softedge import color
-from softedge.core import Camera, Point3, Vector3
-from softedge.renderer import RaytraceRenderer
+from softedge.renderer import Sampler
 
 
 def main(out_filename='rtr_scene_camera.pam'):
-    from scripts.create_scene import scene
-    camera = Camera(Point3(250.0, 250.0, -800.0), Vector3.Z)
+    from scripts.create_scene import Scene
 
     width, height = 640, 480
-    renderer = RaytraceRenderer(width, height)
+    sampler = Sampler(Scene.geometry, Scene.lights)
     with open(out_filename, 'wb') as f:
         f.write('P7\n'
                 'WIDTH %d\n'
@@ -17,7 +15,7 @@ def main(out_filename='rtr_scene_camera.pam'):
                 'MAXVAL 255\n'
                 'TUPLTYPE RGB_ALPHA\n'
                 'ENDHDR\n' % (width, height))
-        for color_ in renderer.render_region(scene, camera, 0, 0, width, height):
+        for color_ in sampler.sample(Scene.camera, width, height, 0, 0, width, height):
             f.write(color.to_str(color_))
 
 

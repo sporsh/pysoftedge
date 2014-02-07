@@ -1,32 +1,18 @@
-from softedge.core import dot, cross
-from softedge import intersection
+from softedge.geometry import Sphere, Triangle
 
 
 class Renderable(object):
-    def __init__(self, color):
-        self.color = color
+    def __init__(self, material):
+        self.material = material
 
 
-class Plane(Renderable):
-    def __init__(self, a, b, c):
-        self.normal = cross(b-a, c-a)
-        self.d = dot(self.normal, a)
+class Sphere(Renderable, Sphere):
+    def __init__(self, material, origin, radius):
+        Renderable.__init__(self, material)
+        Sphere.__init__(self, origin, radius)
 
 
-class Triangle(Renderable):
-    intersect = staticmethod(intersection.intersect_Ray_Triangle)
-
-    def __init__(self, a, b, c, color):
-        Renderable.__init__(self, color)
-        self.a, self.b, self.c = a, b, c
-        self.ab, self.ac = b-a, c-a
-        self.plane = Plane(a, b, c)
-
-
-class Sphere(Renderable):
-    intersect = staticmethod(intersection.intersect_Ray_Sphere)
-
-    def __init__(self, origin, radius, color):
-        Renderable.__init__(self, color)
-        self.origin = origin
-        self.radius = radius
+class Triangle(Triangle, Renderable):
+    def __init__(self, material, a, b, c):
+        Renderable.__init__(self, material)
+        Triangle.__init__(self, a, b, c)
