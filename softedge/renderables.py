@@ -1,4 +1,4 @@
-from softedge.geometry import Sphere, Triangle
+from softedge import geometry
 
 
 class Renderable(object):
@@ -6,13 +6,13 @@ class Renderable(object):
         self.material = material
 
 
-class Sphere(Renderable, Sphere):
+class Sphere(Renderable, geometry.Sphere):
     def __init__(self, material, origin, radius):
         Renderable.__init__(self, material)
-        Sphere.__init__(self, origin, radius)
+        geometry.Sphere.__init__(self, origin, radius)
 
 
-class Triangle(Triangle, Renderable):
+class Triangle(geometry.Triangle, Renderable):
     def __init__(self, material, a, b, c):
         Renderable.__init__(self, material)
-        Triangle.__init__(self, a, b, c)
+        geometry.Triangle.__init__(self, a, b, c)

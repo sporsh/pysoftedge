@@ -38,8 +38,8 @@ class Sampler(object):
             for x in xrange(sx, sx + sw):
                 radiance, samples = ZERO, 0
                 for _ in xrange(10):
-                    xcomp = right * ((x + random.random() - .5) * pixel_width - half_width)
-                    ycomp = up * ((y + random.random() - .5) * pixel_height - half_height)
+                    xcomp = right * (random.uniform(x, x+1) * pixel_width - half_width)
+                    ycomp = up * (random.uniform(y, y+1) * pixel_height - half_height)
                     direction = (camera.direction - xcomp - ycomp).normalize()
                     ray = Ray(camera.origin, direction)
                     for sample in self.trace(ray):
@@ -50,21 +50,20 @@ class Sampler(object):
     def trace(self, ray):
         i = self.geometry.intersect(ray, False, EPSILON)
         if i:
-            for radiance in random.choice((self.radiance, self.reflect))(ray, i):
-                yield radiance
+            return random.choice((self.reflect, self.radiance))(ray, i)
         else:
-            yield ZERO
+            return (ZERO,)
 
     def reflect(self, ray, i):
         ray.origin = i.point
         ray.direction = ray.direction.reflect(i.normal)
-        for radiance in self.trace(ray):
-            yield radiance
+        return self.trace(ray)
+
 
     def radiance(self, ray, i):
         """Sample outgoint radiance to ray from surface at intersection i
         """
-        yield Vector(-.5, -.5, -.5) * max(0, i.normal.dot(ray.direction * -1))
+        yield i.renderable.material.radiance #* max(0, i.normal.dot(ray.direction * -1))
 #         yield i.renderable.radiance * max(0, i.normal.dot(ray.direction * -1))
         for irradiance in self.irradiance(i):
             yield irradiance
